@@ -1,11 +1,11 @@
 # coding=utf-8
-from simpleai.search.utils import FifoList, BoundedPriorityQueue
+from simpleai.search.utils import FifoList, BoundedPriorityQueue, LifoList
 from simpleai.search.models import (SearchNode, SearchNodeHeuristicOrdered,
                                     SearchNodeStarOrdered,
                                     SearchNodeCostOrdered)
 
 
-def breadth_first(problem, graph_search=False):
+def breadth_first(problem, graph_search=False, viewer=None):
     '''
     Breadth first search.
 
@@ -15,10 +15,11 @@ def breadth_first(problem, graph_search=False):
     '''
     return _search(problem,
                    FifoList(),
-                   graph_search=graph_search)
+                   graph_search=graph_search,
+                   viewer=viewer)
 
 
-def depth_first(problem, graph_search=False):
+def depth_first(problem, graph_search=False, viewer=None):
     '''
     Depth first search.
 
@@ -27,11 +28,12 @@ def depth_first(problem, graph_search=False):
     SearchProblem.is_goal.
     '''
     return _search(problem,
-                   [],
-                   graph_search=graph_search)
+                   LifoList(),
+                   graph_search=graph_search,
+                   viewer=viewer)
 
 
-def limited_depth_first(problem, depth_limit, graph_search=False):
+def limited_depth_first(problem, depth_limit, graph_search=False, viewer=None):
     '''
     Limited depth first search.
 
@@ -41,12 +43,13 @@ def limited_depth_first(problem, depth_limit, graph_search=False):
     SearchProblem.is_goal.
     '''
     return _search(problem,
-                   [],
+                   LifoList(),
                    graph_search=graph_search,
-                   depth_limit=depth_limit)
+                   depth_limit=depth_limit,
+                   viewer=viewer)
 
 
-def iterative_limited_depth_first(problem, graph_search=False):
+def iterative_limited_depth_first(problem, graph_search=False, viewer=None):
     '''
     Iterative limited depth first search.
 
@@ -58,13 +61,19 @@ def iterative_limited_depth_first(problem, graph_search=False):
     limit = 0
 
     while not solution:
-        solution = limited_depth_first(problem, limit, graph_search)
+        solution = limited_depth_first(problem,
+                                       depth_limit=limit,
+                                       graph_search=graph_search,
+                                       viewer=viewer)
         limit += 1
+
+    if viewer:
+        viewer.event('no_more_runs', solution, 'returned after %i runs' % limit)
 
     return solution
 
 
-def uniform_cost(problem, graph_search=False):
+def uniform_cost(problem, graph_search=False, viewer=None):
     '''
     Uniform cost search.
 
@@ -76,10 +85,11 @@ def uniform_cost(problem, graph_search=False):
                    BoundedPriorityQueue(),
                    graph_search=graph_search,
                    node_factory=SearchNodeCostOrdered,
-                   graph_replace_when_better=True)
+                   graph_replace_when_better=True,
+                   viewer=viewer)
 
 
-def greedy(problem, graph_search=False):
+def greedy(problem, graph_search=False, viewer=None):
     '''
     Greedy search.
 
@@ -91,10 +101,11 @@ def greedy(problem, graph_search=False):
                    BoundedPriorityQueue(),
                    graph_search=graph_search,
                    node_factory=SearchNodeHeuristicOrdered,
-                   graph_replace_when_better=True)
+                   graph_replace_when_better=True,
+                   viewer=viewer)
 
 
-def astar(problem, graph_search=False):
+def astar(problem, graph_search=False, viewer=None):
     '''
     A* search.
 
@@ -106,39 +117,57 @@ def astar(problem, graph_search=False):
                    BoundedPriorityQueue(),
                    graph_search=graph_search,
                    node_factory=SearchNodeStarOrdered,
-                   graph_replace_when_better=True)
+                   graph_replace_when_better=True,
+                   viewer=viewer)
 
 
 def _search(problem, fringe, graph_search=False, depth_limit=None,
-            node_factory=SearchNode, graph_replace_when_better=False):
+            node_factory=SearchNode, graph_replace_when_better=False,
+            viewer=None):
     '''
     Basic search algorithm, base of all the other search algorithms.
     '''
-    memory = {}
+    if viewer:
+        viewer.event('started')
+
+    memory = set()
     initial_node = node_factory(state=problem.initial_state,
                                 problem=problem)
     fringe.append(initial_node)
-    memory[problem.initial_state] = initial_node
 
     while fringe:
-        node = fringe.pop()
-        if problem.is_goal(node.state):
-            return node
-        if depth_limit is None or node.depth < depth_limit:
-            childs = []
-            for n in node.expand():
-                if graph_search:
-                    if n.state not in memory:
-                        memory[n.state] = n
-                        childs.append(n)
-                    elif graph_replace_when_better:
-                        other = memory[n.state]
-                        if n < other:
-                            childs.append(n)
-                            if other in fringe:
-                                fringe.remove(other)
-                else:
-                    childs.append(n)
+        if viewer:
+            viewer.event('new_iteration', fringe.sorted())
 
-            for n in childs:
-                fringe.append(n)
+        node = fringe.pop()
+
+        if problem.is_goal(node.state):
+            if viewer:
+                viewer.event('chosen_node', node, True)
+                viewer.event('finished', fringe.sorted(), node, 'goal found')
+            return node
+        else:
+            if viewer:
+                viewer.event('chosen_node', node, False)
+
+        memory.add(node.state)
+
+        if depth_limit is None or node.depth < depth_limit:
+            expanded = node.expand()
+            if viewer:
+                viewer.event('expanded', [node], [expanded])
+
+            for n in expanded:
+                if graph_search:
+                    others = [x for x in fringe if x.state == n.state]
+                    assert len(others) in (0, 1)
+                    if n.state not in memory and len(others) == 0:
+                        fringe.append(n)
+                    elif graph_replace_when_better and len(others) > 0 and n < others[0]:
+                        fringe.remove(others[0])
+                        fringe.append(n)
+                else:
+                    fringe.append(n)
+
+    if viewer:
+        viewer.event('finished', fringe.sorted(), None, 'goal not found')

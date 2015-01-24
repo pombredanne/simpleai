@@ -13,11 +13,9 @@ At this moment, the implementation includes:
     * Traditional search algorithms (not informed and informed)
     * Local Search algorithms
     * Constraint Satisfaction Problems algorithms
+    * Interactive execution viewers for search algorithms (web-based and terminal-based)
 * Machine Learning
     * Statistical Classification 
-
-And we are working on an interactive execution viewer for search algorithms (display the search tree on each iteration).
-
 
 Installation
 ============
@@ -28,6 +26,16 @@ Just get it:
 
     pip install simpleai
 
+And if you want to use the interactive search viewers, also install:
+
+.. code-block:: none
+
+    pip install pyparsing==1.5.7 pydot flask
+
+You will need to have pip installed on your system. On linux install the 
+python-pip package, on windows follow `this <http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows>`_.
+Also, if you are on linux and not working with a virtualenv, remember to use
+``sudo`` for both commands (``sudo pip install ...``).
 
 Examples
 ========
@@ -44,6 +52,7 @@ This problem tries to create the string "HELLO WORLD" using the A* algorithm:
     from simpleai.search import SearchProblem, astar
 
     GOAL = 'HELLO WORLD'
+
 
     class HelloProblem(SearchProblem):
         def actions(self, state):
@@ -64,7 +73,6 @@ This problem tries to create the string "HELLO WORLD" using the A* algorithm:
                         for i in range(len(state))])
             missing = len(GOAL) - len(state)
             return wrong + missing
-
 
     problem = HelloProblem(initial_state='')
     result = astar(problem)
@@ -87,8 +95,5 @@ Join us at the Simple AI `google group <http://groups.google.com/group/simpleai>
 Authors
 =======
 
-* Juan Pedro Fisanotti <fisadev@gmail.com>
-* Rafael Carrascosa <rcarrascosa@machinalis.com>
-* Santiago Romero <sromero@machinalis.com>
-* Gonzalo García Berrotarán <ggarcia@machinalis.com>
+* Many people you can find on the `contributors section <https://github.com/simpleai-team/simpleai/graphs/contributors>`_.
 * Special acknowledgements to `Machinalis <http://www.machinalis.com/>`_ for the time provided to work on this project. Machinalis also works on some other very interesting projects, like `Quepy <http://quepy.machinalis.com/>`_ and `more <https://github.com/machinalis>`_.

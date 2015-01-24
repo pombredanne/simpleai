@@ -11,6 +11,7 @@ class DummyNode(object):
 
 GOAL = 'iabcabc'
 
+
 class DummyProblem(object):
     def actions(self, state):
         return ['a', 'b', 'c'] if len(state) < len(GOAL) else []
@@ -49,3 +50,45 @@ class DummyGeneticProblem(object):
 
     def generate_random_state(self):
         return 4  # Please see http://xkcd.com/221/
+
+
+class DummyGraphProblem(object):
+
+    _map = {
+            'r': {'l': 16},
+            'l': {'s': 26, 'a': 10, 'r': 16},
+            'a': {'s': 15, 'l': 10},
+            's': {'l': 26, 'a': 15},
+            }
+
+    consistent = {'r': 0, 'l': 15, 'a': 25, 's': 30}
+    inconsistent = {'r': 0, 'l': 10, 'a': 25, 's': 30}
+    inadmissible = {'r': 0, 'l': 15, 'a': 28, 's': 30}
+
+    def __init__(self, heuristic_dict=None):
+        self.initial_state = 's'
+        self.goal = 'r'
+        self.heuristic_dict = heuristic_dict
+
+    def is_goal(self, state):
+        return state == self.goal
+
+    def actions(self, state):
+        "returns state's neighbors"
+        return self._map[state].keys()
+
+    def result(self, state, action):
+        'returns the action because it indicates the next city'
+        return action
+
+    def cost(self, state1, action, state2):
+        return self._map[state1][state2]
+
+    def heuristic(self, state):
+        return self.heuristic_dict[state]
+
+    def state_representation(self, state):
+        return state
+
+    def action_representation(self, action):
+        return action

@@ -5,24 +5,40 @@ from itertools import izip
 import random
 
 
+class LifoList(deque):
+    '''List that pops from the end.'''
+
+    def sorted(self):
+        return list(self)[::-1]
+
+
 class FifoList(deque):
     '''List that pops from the beginning.'''
     def pop(self):
         return super(FifoList, self).popleft()
 
+    def sorted(self):
+        return list(self)
 
-class BoundedPriorityQueue(list):
+
+class BoundedPriorityQueue(object):
     def __init__(self, limit=None, *args):
         self.limit = limit
-        super(BoundedPriorityQueue, self).__init__(*args)
+        self.queue = list()
+
+    def __getitem__(self, val):
+        return self.queue[val]
+
+    def __len__(self):
+        return len(self.queue)
 
     def append(self, x):
-        heapq.heappush(self, x)
-        if self.limit and len(self) > self.limit:
-            self.remove(heapq.nlargest(1, self)[0])
+        heapq.heappush(self.queue, x)
+        if self.limit and len(self.queue) > self.limit:
+            self.queue.remove(heapq.nlargest(1, self.queue)[0])
 
     def pop(self):
-        return heapq.heappop(self)
+        return heapq.heappop(self.queue)
 
     def extend(self, iterable):
         for x in iterable:
@@ -30,7 +46,13 @@ class BoundedPriorityQueue(list):
 
     def clear(self):
         for x in self:
-            self.remove(x)
+            self.queue.remove(x)
+
+    def remove(self, x):
+        self.queue.remove(x)
+
+    def sorted(self):
+        return heapq.nsmallest(len(self.queue), self.queue)
 
 
 class InverseTransformSampler(object):
@@ -54,3 +76,18 @@ class InverseTransformSampler(object):
         while i + 1 != len(self.probs) and target > self.probs[i]:
             i += 1
         return self.objects[i]
+
+
+def _generic_arg(iterable, function, better_function):
+    values = [function(x) for x in iterable]
+    better_value = better_function(values)
+    candidates = [x for x, value in zip(iterable, values) if value == better_value]
+    return random.choice(candidates)
+
+
+def argmin(iterable, function):
+    return _generic_arg(iterable, function, min)
+
+
+def argmax(iterable, function):
+    return _generic_arg(iterable, function, max)
